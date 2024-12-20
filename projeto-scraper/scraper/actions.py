@@ -21,30 +21,42 @@ def extract_products_from_page(soup):
     product_elements = soup.find_all("li", class_="item product product-item")
 
     for product_element in product_elements:
+        # Nome do produto
         name_element = product_element.find("a", class_="product-item-link")
         name = name_element.text.strip() if name_element else "Produto desconhecido"
 
+        # SKU (caso disponível)
         sku_element = product_element.find(attrs={"data-product-id": True})
         sku = sku_element["data-product-id"] if sku_element else None
 
+        # Ignora produtos sem SKU
+        if not sku:
+            print(f"Produto ignorado por não ter SKU: {name}")
+            continue
+
+        # Preço promocional
         promo_price_element = product_element.find("span", class_="special-price")
         promo_price = None
         if promo_price_element:
             price_span = promo_price_element.find("span", class_="price")
-            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
+            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", ".")) if price_span else None
 
+        # Preço normal
         original_price_element = product_element.find("span", class_="old-price")
         original_price = None
         if original_price_element:
             price_span = original_price_element.find("span", class_="price")
-            original_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
+            original_price = float(price_span.text.strip().replace("R$", "").replace(",", ".")) if price_span else None
 
+        # Caso não tenha preço promocional, o preço normal é o preço atual
         if not promo_price:
             price_span = product_element.find("span", class_="price")
-            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
+            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", ".")) if price_span else None
 
+        # Indica se está em promoção
         offer = original_price is not None and promo_price < original_price
 
+        # Adiciona os dados do produto à lista
         products.append({
             "name": name,
             "sku": sku,

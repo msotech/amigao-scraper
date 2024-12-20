@@ -60,4 +60,3 @@ class Command(BaseCommand):
                 )
 
         print("Finished processing all URLs.")
- 
