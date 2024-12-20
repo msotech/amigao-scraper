@@ -1,68 +1,71 @@
 import requests
 from bs4 import BeautifulSoup
 
+
 def parse_url(url):
     response = requests.get(url)
     if response.status_code == 200:
         return BeautifulSoup(response.text, "html.parser")
     return None
 
-def determine_offer(soup):
-    return soup.find(attrs={"data-price-type": "oldPrice"}) is not None
 
-def extract_product_name(soup):
-    product_name_element = soup.find(attrs={"itemprop": "name"})
-    return product_name_element.text.strip() if product_name_element else None
+def extract_category(soup):
+    category_element = soup.find("span", attrs={"data-ui-id": "page-title-wrapper"})
+    if category_element:
+        return category_element.text.strip()
+    return "Categoria desconhecida"
 
-def extract_product_sku(soup):
-    sku_element = soup.find(attrs={"data-product-sku": True})
-    return sku_element["data-product-sku"] if sku_element else None
 
-def extract_offer_prices(soup):
-    old_price_element = soup.find(
-        attrs={"data-price-type": "oldPrice", "data-price-amount": True}
-    )
-    new_price_element = soup.find(
-        attrs={"data-price-type": "finalPrice", "data-price-amount": True}
-    )
+def extract_products_from_page(soup):
+    products = []
+    product_elements = soup.find_all("li", class_="item product product-item")
 
-    old_price = old_price_element["data-price-amount"] if old_price_element else None
-    new_price = new_price_element["data-price-amount"] if new_price_element else None
+    for product_element in product_elements:
+        name_element = product_element.find("a", class_="product-item-link")
+        name = name_element.text.strip() if name_element else "Produto desconhecido"
 
-    return old_price, new_price
+        sku_element = product_element.find(attrs={"data-product-id": True})
+        sku = sku_element["data-product-id"] if sku_element else None
 
-def extract_normal_price(soup):
-    price_element = soup.find(
-        attrs={"data-price-type": "finalPrice", "data-price-amount": True}
-    )
-    return price_element["data-price-amount"] if price_element else None
+        promo_price_element = product_element.find("span", class_="special-price")
+        promo_price = None
+        if promo_price_element:
+            price_span = promo_price_element.find("span", class_="price")
+            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
 
-def extract_product(url):
-    soup = parse_url(url)
-    if not soup:
-        print(f"Failed to fetch data from URL: {url}")
-        return None
+        original_price_element = product_element.find("span", class_="old-price")
+        original_price = None
+        if original_price_element:
+            price_span = original_price_element.find("span", class_="price")
+            original_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
 
-    offer = determine_offer(soup)
+        if not promo_price:
+            price_span = product_element.find("span", class_="price")
+            promo_price = float(price_span.text.strip().replace("R$", "").replace(",", "."))
 
-    if offer:
-        old_price, current_price = extract_offer_prices(soup)
-    else:
-        old_price = None
-        current_price = extract_normal_price(soup)
+        offer = original_price is not None and promo_price < original_price
 
-    sku = extract_product_sku(soup)
-    name = extract_product_name(soup)
+        products.append({
+            "name": name,
+            "sku": sku,
+            "current_price": promo_price,
+            "old_price": original_price if offer else None,
+            "offer": offer,
+        })
 
-    if not name or not sku or not current_price:
-        print(f"Failed to extract all product details from URL: {url}")
-        return None
+    return products
 
-    product_data = {
-        "name": name,
-        "sku": sku,
-        "current_price": float(current_price),
-        "old_price": float(old_price) if old_price else None,
-        "offer": offer,
-    }
-    return product_data
+
+def extract_pagination_links(soup):
+    pagination_links = []
+    pages = soup.find("div", class_="pages")
+    if not pages:
+        return pagination_links
+
+    page_links = pages.find_all("a", href=True, class_="page")
+    for page_link in page_links:
+        link = page_link["href"]
+        if link not in pagination_links:
+            pagination_links.append(link)
+
+    return pagination_links
