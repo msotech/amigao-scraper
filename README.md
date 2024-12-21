@@ -97,3 +97,10 @@ Entre com os dados de superuser criado no passo 5 da `Instalação`.
 Adicione uma `Store` e vários `URLs` de produtos do [Amigão](https://www.amigao.com) para serem extraídos futuramente.
 
 Execute o comando `python manage.py getprices` no terminal (garantindo estar na mesma pasta que o arquivo "manage.py") para extrair os dados dos produtos.
+
+## Prints da aplicação
+
+<img src="images/print1.png" alt="Lista de urls" width="500">
+<img src="images/print2.png" alt="Produtos extraidos" width="500">
+<img src="images/print3.png" alt="Historico dos produtos" width="500">
+<img src="images/print4.png" alt="Categorias extraidas." width="500">
