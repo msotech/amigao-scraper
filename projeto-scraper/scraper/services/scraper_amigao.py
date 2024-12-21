@@ -116,7 +116,6 @@ class ScraperAmigao:
 
         page_products = base_page.find_all_next(class_="item product product-item")
 
-        # Garante que `self.category` seja uma instância válida de Category
         category_instance, _ = Category.objects.get_or_create(name=self.category)
 
         for page_product in page_products:
@@ -125,22 +124,20 @@ class ScraperAmigao:
             if product_data is None:
                 continue
 
-            # Adiciona a relação entre Product e Category
             product, created = Product.objects.get_or_create(
                 sku=product_data["sku"],
                 defaults={
                     "description": product_data["name"],
                     "store": self.store,
-                    "category": category_instance,  # Relaciona a categoria ao produto
+                    "category": category_instance,
                 },
             )
 
             if not created:
                 product.description = product_data["name"]
-                product.category = category_instance  # Atualiza a categoria se necessário
+                product.category = category_instance
                 product.save()
 
-            # Cria o histórico do produto
             History.objects.create(
                 product=product,
                 default_price=product_data["old_price"]
@@ -149,7 +146,7 @@ class ScraperAmigao:
                     product_data["current_price"] if product_data["offer"] else None
                 ),
                 offer=product_data["offer"],
-                category=category_instance,  # Relaciona a instância de categoria
+                category=category_instance,
             )
 
     def extract_url(self):
